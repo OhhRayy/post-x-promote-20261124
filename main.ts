@@ -15,7 +15,7 @@
 //   mkdir -p out && MAKEFUN_BOT_DIR=. MAKEFUN_OUTPUT_DIR=out node main.ts
 // Afterwards out/POST.json is byte for byte this directory's POST.json.
 
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 // Where the repository lives and where the result goes. The grader mounts
@@ -40,4 +40,32 @@ try {
   process.exit(1);
 }
 
-// Success prints nothing, by design.
+// The copy alone is not proof the gate can read the post, so verify the
+// result before finishing: read the copied file back, parse it, and check
+// the address it names is a real X post address. A copy that cannot be
+// read back, or an address that is not a post, fails loudly instead of
+// silently handing the grader a broken file.
+let copied: string;
+try {
+  copied = readFileSync(target, 'utf8');
+} catch (err) {
+  console.error(`Could not read back ${target}: ${(err as Error).message}`);
+  process.exit(1);
+}
+
+let postUrl: unknown;
+try {
+  postUrl = (JSON.parse(copied) as { url?: unknown }).url;
+} catch (err) {
+  console.error(`Copied POST.json is not valid JSON: ${(err as Error).message}`);
+  process.exit(1);
+}
+
+if (typeof postUrl !== 'string' || !/^https:\/\/x\.com\/[A-Za-z0-9_]+\/status\/[0-9]+$/.test(postUrl)) {
+  console.error(`Copied POST.json has no valid post address: ${JSON.stringify(postUrl)}`);
+  process.exit(1);
+}
+
+// Success prints a short confirmation with the address and size, so a run
+// log shows the gate got exactly the post that was handed in.
+console.log(`POST.json copied and verified: ${postUrl} (${statSync(target).size} bytes)`);

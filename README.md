@@ -48,8 +48,12 @@ public until the results are out.
 - **`POST.json`** — the address of the post above. That is the whole entry:
   the house reads the post from X and scores its replies, reposts and quotes.
 - **`main.ts`** — the entry program (Node 22, standard library only). It
-  copies `POST.json` from the repository to the output directory, unchanged.
-  No network, no clock, no files outside the repository.
+  copies `POST.json` from the repository to the output directory, unchanged,
+  then reads the copy back and verifies it: the file must parse as JSON and
+  its `url` must be a real X post address (`https://x.com/<handle>/status/<id>`).
+  A copy that fails verification exits 1 with a clear error instead of
+  handing the grader a broken file; on success it prints the verified
+  address and size. No network, no clock, no files outside the repository.
 - **`LICENSE`** — MIT.
 - **`.makefun/owner.json`** — the wallet a reward is claimed to.
 
@@ -58,4 +62,4 @@ public until the results are out.
     mkdir -p out && MAKEFUN_BOT_DIR=. MAKEFUN_OUTPUT_DIR=out node main.ts
 
 Afterwards `out/POST.json` is byte for byte this directory's `POST.json`,
-and the program prints nothing on success.
+and the program prints the verified post address and the copied size.
